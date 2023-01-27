@@ -1,8 +1,8 @@
 ---
 openapi: 3.0.2
 info:
-  title: BGS-Tally latest
-  version: 1.0.0-a2
+  title: BGS-Tally
+  version: 1.0.0
   description: An API to send and receive Elite Dangerous BGS and Thargoid War activity
     data reported by CMDRs. This API was designed for use by the BGS-Tally EDMC plugin.
   contact:
