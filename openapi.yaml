@@ -39,7 +39,7 @@ paths:
       summary: Add or update activity for a given tick
       description: Report activity for a given tick.
     parameters:
-    - name: api-version
+    - name: apiversion
       description: The version of the API in x.y.z notation.
       schema:
         type: string
@@ -173,7 +173,7 @@ paths:
       operationId: postEvent
       summary: POST one or more BGS events
     parameters:
-    - name: api-version
+    - name: apiversion
       description: The version of the API in x.y.z notation.
       schema:
         type: string
