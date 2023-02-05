@@ -1,7 +1,7 @@
 ---
 openapi: 3.0.2
 info:
-  title: BGS-Tally
+  title: BGS-Tally v1.0.0
   version: 1.0.0
   description: An API to send and receive Elite Dangerous BGS and Thargoid War activity
     data reported by CMDRs. This API was designed for use by the BGS-Tally EDMC plugin.
@@ -12,6 +12,39 @@ info:
     name: MIT License
     url: https://opensource.org/licenses/MIT
 paths:
+  /activities:
+    summary: Handle BGS activity reports
+    put:
+      requestBody:
+        description: Activity to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivitiesActivity'
+        required: true
+      responses:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Unexpected error
+        "200":
+          description: Success
+        "401":
+          description: API version not supported or invalid key
+      security:
+      - KeyAccessSecurityScheme: []
+      operationId: putActivity
+      summary: Add or update activity for a given tick
+      description: Report activity for a given tick.
+    parameters:
+    - name: api-version
+      description: The version of the API in x.y.z notation.
+      schema:
+        type: string
+      in: header
+      required: true
   /discovery:
     summary: Discover information about this server and its API capabilities
     get:
@@ -26,52 +59,126 @@ paths:
       description: 'A discovery response containing information about the application
         and endpoints '
   /events:
-    summary: Real-time / near real-time event stream
-    description: Send journal event entries with most data taken directly from the
-      journal. Does add some client-side tracked information such as target system.
+    summary: Real-time / near-real-time event stream
+    description: |-
+      Send journal event entries. Adds client-side tracked information such as target system and target faction, while trucating useless data.
+      Some events which are not in the journal are also added to provide manually tracked information such as conflict zones and scenarios
     post:
       requestBody:
+        description: Contains one or more BGS significant event
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/EventsEvent'
+              $ref: '#/components/schemas/Events'
+            examples:
+              EventLocation:
+                value:
+                  cmdr: Tally
+                  events:
+                  - event: location
+                    timestamp: 2022-01-01T00:00:00Z
+                    tickID: 639f422026842f7295280669
+                    system: Mahia
+                    address: 358864491242
+                    faction: Silver Dynamic Services
+                    factions:
+                    - name: Mahia Patron's Principles
+                      state: None
+                      influence: 0.46
+                    - name: Silver Dynamic Services
+                      state: War
+                      influence: 0.145291
+                      activeStates:
+                      - War
+                      - Boom
+                    - name: Mahia Patron's Principles
+                      state: War
+                      influence: 0.145291
+                      activeStates:
+                      - War
+                    conflicts:
+                    - conflict: war
+                      status: active
+                      factions:
+                      - faction: Silver Dynamic Services
+                        stake: Rutan Horizons
+                        won: 2
+                      - faction: Mahia Patron's Principles
+                        stake: Crow Point
+                        won: 1
+                    security: medium
+              EventMissionCompleted:
+                value:
+                  cmdr: Tally
+                  events:
+                  - event: missionCompleted
+                    timestamp: 2022-01-01T00:00:00Z
+                    tickID: 639f422026842f7295280669
+                    system: Mahia
+                    address: 358864491242
+                    faction: Silver Dynamic Services
+                    influence: 2
+                    missionID: 890963251
+                  - event: missionCompleted
+                    timestamp: 2022-01-01T00:00:00Z
+                    tickID: 639f422026842f7295280669
+                    system: Mahia
+                    address: 358864491242
+                    faction: Mahia Patron's Principles
+                    influence: -1
+                    missionID: 890963251
+              EventMissionFailed:
+                value:
+                  cmdr: Tally
+                  events:
+                  - event: missionFailed
+                    timestamp: 2022-01-01T00:00:00Z
+                    tickID: 639f422026842f7295280669
+                    system: Mahia
+                    address: 358864491242
+                    faction: Silver Dynamic Services
+                    missionID: 890963251
         required: true
       responses:
         "200":
-          description: Success
+          description: Successful POST
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                Invalid data:
+                  value:
+                    code: 400
+                    message: Invalid JSON data
+          description: Problem with JSON format or parameters
         "401":
-          description: No API key was supplied or the API key is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid API key:
+                  value:
+                    code: 401
+                    message: Invalid API key
+                Unsupported API version:
+                  value:
+                    code: 401
+                    message: Client API version out of date
+          description: API version not supported or invalid key
       security:
       - KeyAccessSecurityScheme: []
-      summary: Post one or more Journal Events
-      description: |-
-        This endpoint is used to post events that the server has requested via the discovery endpoint. Further, discovery allows the server to request that only events with field values matching specific RegEx.
-
-        Events are batched up to a maximum specified in discovery. An array is expected, even if a single event is sent.
-
-        Each event includes all field values passed directly from the Journal - those game-supplied fields are not included in this documentation. However, Events are also enhanced by BGS-Tally and those enhanced fields are documented below.
-  /activities:
-    summary: Handle BGS activity reports
-    put:
-      requestBody:
-        description: Activity to add
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ActivitiesActivity'
-        required: true
-      responses:
-        "200":
-          description: Success
-        "401":
-          description: No API key was supplied or the API key is invalid
-      security:
-      - KeyAccessSecurityScheme: []
-      operationId: putActivity
-      summary: Add or update activity for a given tick
-      description: Report activity for a given tick.
+      operationId: postEvent
+      summary: POST one or more BGS events
+    parameters:
+    - name: api-version
+      description: The version of the API in x.y.z notation.
+      schema:
+        type: string
+      in: header
+      required: true
 components:
   schemas:
     Error:
@@ -91,7 +198,7 @@ components:
         message: Error description
     Timestamp:
       format: date-time
-      description: timestamp in YYYY-mm-ddTHH:MM:SS.SSSZ format
+      description: timestamp of an event in YYYY-mm-ddTHH:MM:SS.SSSZ format
       type: string
       example: 2022-01-01T00:00:00Z
     TickID:
@@ -102,12 +209,488 @@ components:
       minLength: 24
       type: string
       example: 639f422026842f7295280669
+    EventMissionFailed:
+      description: Mission failure event
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - missionID
+        type: object
+        properties:
+          missionID:
+            description: id of the mission
+            type: integer
+            example: "890223372"
+    EventExploration:
+      description: "SellExplorationData, MultiSellExplorationData"
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - value
+        type: object
+        properties:
+          value:
+            description: Total credits (TotalEarnings) of the transaction
+            type: integer
+            example: "256454"
+    EventLocation:
+      description: |-
+        Contains system information.
+        Associated with Location, FSDJump and CarrierJump journal events.
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - factions
+        - security
+        type: object
+        properties:
+          factions:
+            description: ""
+            type: array
+            items:
+              $ref: '#/components/schemas/ActivitiesFactionInformation'
+          conflicts:
+            description: ""
+            type: array
+            items:
+              $ref: '#/components/schemas/ConflictInformation'
+          security:
+            description: ""
+            enum:
+            - high
+            - medium
+            - low
+            - anarchy
+            type: string
+            example: medium
+    ConflictInformation:
+      title: Root Type for ConflictInformation
+      description: |-
+        As fetched from the journal files
+
+        Should be lowercased
+      required:
+      - conflict
+      - status
+      - faction1
+      - factions
+      type: object
+      properties:
+        conflict:
+          type: string
+        status:
+          type: string
+        factions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConflictFaction'
+      example:
+        conflict: war
+        status: active
+        factions:
+        - faction: Silver Dynamic Services
+          stake: Rutan Horizons
+          won: 0
+        - faction: Mahia Patron's Principles
+          won: 0
+    ConflictFaction:
+      title: ConflictFaction
+      description: |-
+        As fetched from the journal files
+
+        Should be lowercased
+      required:
+      - faction
+      - won
+      type: object
+      properties:
+        faction:
+          description: Name of the faction
+          type: string
+          example: Silver Dynamic Services
+        stake:
+          description: "Asset at stake, not required if blank or unspecified"
+          type: string
+          example: Rutan Horizon
+        won:
+          format: int32
+          description: Days won
+          type: integer
+          example: "0"
+      example:
+        faction: Silver Dynamic Services
+        stake: Rutan Horizons
+        won: 0
+    EventCrime:
+      description: |-
+        crime is sent as written in the Journal file (CrimeType).
+
+        either the bounty or fine is included
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - crime
+        type: object
+        properties:
+          crime:
+            description: "CrimeType from the journal files, sent as-is"
+            type: string
+            example: murder
+          bounty:
+            description: bounty amount
+            type: integer
+            example: "5000"
+          fine:
+            description: fine amount
+            type: integer
+            example: "200"
+    EventScenario:
+      description: |-
+        Scenario event. This event should be ideally sent in pairs to account for the opposing faction.
+
+        Effect default is smallUp. Effect is not required for conflict zone scenarios
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - count
+        - type
+        type: object
+        properties:
+          type:
+            description: Type of the scenario completed
+            enum:
+            - installation
+            - megaship
+            - conflictZone
+            - signalSource
+            type: string
+            example: installation
+          effect:
+            description: "influence wording: small, medium, significant increase(up)\
+              \ or decrease(Down)"
+            enum:
+            - smallUp
+            - mediumUp
+            - significantUp
+            - smallDown
+            - mediumDown
+            - significantDown
+            type: string
+            example: smallUp
+          count:
+            description: "Number of completed scenarios to be added. Typically 1,\
+              \ except for conflict zones"
+            type: integer
+            example: "1"
+    EventMarketBuy:
+      description: |-
+        MarketBuy event
+
+        Since buying from a fleet carrier doesn't have an associated faction or BGS effect, those are not sent.
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - count
+        - total
+        - commodity
+        - supply
+        - supplyBracket
+        type: object
+        properties:
+          count:
+            description: Number of items sold (Count)
+            type: integer
+            example: "200"
+          total:
+            description: Amount of the transaction (TotalSale)
+            type: integer
+            example: "253614"
+          commodity:
+            description: Non-localised name of the good sold
+            type: string
+            example: Gold
+          supplyBracket:
+            description: "supplyBracket (3 = green/high, 2 = normal, 1 = low/red,\
+              \ 0 = none)"
+            type: integer
+            example: "2"
+          supply:
+            description: supply from the journal file
+            type: integer
+            example: "1453"
+    EventMissionCompleted:
+      description: |-
+        Mission completed event
+
+        Multiple events must be created for missions that have an effect on multiple factions
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - influence
+        - missionID
+        type: object
+        properties:
+          influence:
+            description: Number of influence "+" received (FactionEffects>Influence).
+              Can be negative
+            type: integer
+            example: "2"
+          missionID:
+            description: id of the mission
+            type: integer
+            example: "880664076"
+    EventObject:
+      description: "Common information for any event.\n\nTypes simplifed and lowercased:\
+        \ \n- system = Location, FSDJump, CarrierJump\n- exploration = SellExplorationData,\
+        \ MultiSellExplorationData\n\nfaction is the system controller (SystemFaction>Name)\
+        \ for Location, FSDJump and CarrierJump events\n\nlocation can also be in\
+        \ the Docked state, in which case the docked event should be sent as a second\
+        \ Entry\n\nDocked event is not required if fleet carrier purchase is tracked\
+        \ by the plugin"
+      required:
+      - event
+      - timestamp
+      - tickID
+      - system
+      - address
+      - faction
+      type: object
+      properties:
+        event:
+          description: Type of the Event Item (inherited schemas)
+          enum:
+          - location
+          - missionAccepted
+          - missionCompleted
+          - missionAbandoned
+          - missionFailed
+          - exploration
+          - voucher
+          - crime
+          - marketSell
+          - marketBuy
+          - conflictZone
+          - scenario
+          type: string
+          example: location
+        timestamp:
+          $ref: '#/components/schemas/Timestamp'
+          description: timestamp of an event in YYYY-mm-ddTHH:MM:SS.SSSZ format
+        tickID:
+          $ref: '#/components/schemas/TickID'
+          description: |-
+            The ID of the tick this activity should be associated with. This ID
+             is originally generated by elitebgs.app and is unique for each tick.
+          example: 639f422026842f7295280669
+        system:
+          description: Target system name as logged from the journal files (StarSystem).
+          type: string
+          example: Mahia
+        address:
+          format: int64
+          description: The unique E:D system address
+          type: integer
+          example: "358864491242"
+        faction:
+          description: Target faction's name. The one affected by the event or the
+            system controller
+          type: string
+          example: Silver Dynamic Services
+    EventVoucher:
+      description: |-
+        RedeemVoucher, type is as included in the journal files
+
+        Bounty needs to be broken down in multiple events for each of the factions redeemedFor since each event affects only one Faction
+
+        Note: CombatBond is the only PascalCase Type. Recommend using combatBond or combatbond
+
+        Only bounty and CombatBond are really BGS significant, however including all types does not affect the API.
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - value
+        - type
+        type: object
+        properties:
+          value:
+            description: Credits (Factions>Amount) received from the transaction
+            type: integer
+            example: "256454"
+          type:
+            description: "Voucher type such as bounty, combatBond, etc."
+            type: string
+            example: bounty
+          carrier:
+            description: If redeem on FleetCarrier
+            type: boolean
+    EventConflictZone:
+      description: |-
+        Conflict Zone event
+
+        This will add one or more conflict zones of one type and is meant to be used as they are completed. For reporting a daily total, the /activities endpoint should be used
+        In case of discrepancies between the sum of conflict zones completed and the daily total, the /activities endpoint will have priority.
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - count
+        - intensity
+        - type
+        type: object
+        properties:
+          type:
+            description: "Type of the conflict zone, space, ground, settlement"
+            enum:
+            - space
+            - ground
+            type: string
+            example: space
+          intensity:
+            description: "intensity of the conflict zone(s), low, medium, high"
+            enum:
+            - low
+            - medium
+            - high
+            type: string
+            example: low
+          count:
+            description: Number of conflict zones of that type and intensity to be
+              added
+            type: integer
+            example: "1"
+    EventMissionAccepted:
+      description: |-
+        Mission acceptance event
+
+        Contains all useful mission meta-data which can tie to the missionID and doesn't need to be sent later on.
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - missionID
+        - type
+        - expires
+        type: object
+        properties:
+          missionID:
+            description: id of the mission
+            type: integer
+            example: "890223372"
+          type:
+            description: type of mission (Name)
+            type: string
+            example: Mission_Sightseeing
+          expires:
+            format: date-time
+            description: when the mission expires
+            type: string
+            example: 2022-05-28T03:37:06.000Z
+          station:
+            description: the name of the station involved
+            type: string
+          commodity:
+            description: commodity involved (thargoid war missions)
+            type: string
+          count:
+            description: number of commodities
+            type: integer
+          kills:
+            description: number of kills involved (thargoid war missions)
+            type: integer
+          passengers:
+            description: number of passengers involved (thargoid war missions)
+            type: integer
+    Events:
+      description: Single update to the Events endpoint. Contains one or more event
+        objects
+      required:
+      - cmdr
+      - events
+      type: object
+      properties:
+        cmdr:
+          description: The Commander name
+          type: string
+        events:
+          description: Array of Event Objects which represent a BGS-significant entry
+          type: array
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/EventLocation'
+            - $ref: '#/components/schemas/EventMissionAccepted'
+            - $ref: '#/components/schemas/EventMissionFailed'
+            - $ref: '#/components/schemas/EventMissionCompleted'
+            - $ref: '#/components/schemas/EventExploration'
+            - $ref: '#/components/schemas/EventVoucher'
+            - $ref: '#/components/schemas/EventCrime'
+            - $ref: '#/components/schemas/EventMarketSell'
+            - $ref: '#/components/schemas/EventMarketBuy'
+            - $ref: '#/components/schemas/EventConflictZone'
+            - $ref: '#/components/schemas/EventScenario'
+    EventMarketSell:
+      description: |-
+        MarketSell event
+
+        Since selling to a fleet carrier does not involve a faction or BGS effects, those events are not sent.
+        Therefore, carrierGoods is flagged true if the goods were purchased from a fleet carrier.
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/EventObject'
+      - required:
+        - count
+        - unitCost
+        - total
+        - commodity
+        - demand
+        - demandBracket
+        type: object
+        properties:
+          count:
+            description: Number of items sold (Count)
+            type: integer
+            example: "200"
+          unitCost:
+            description: Price per unit paid (AvgPricePaid)
+            type: integer
+            example: "1536"
+          total:
+            description: Amount of the transaction (TotalSale)
+            type: integer
+            example: "253614"
+          commodity:
+            description: Non-localised name of the good sold
+            type: string
+            example: Gold
+          carrierGoods:
+            description: if the goods were purchased from a fleetCarrier
+            type: boolean
+            example: "false"
+          blackMarket:
+            description: if the goods are sold to a Black Market
+            type: boolean
+            example: "false"
+          demandBracket:
+            description: "demandBracket (3 = green/high, 2 = normal, 1 = low/red,\
+              \ 0 = none)"
+            type: integer
+            example: "2"
+          demand:
+            description: demand from the journal files
+            type: integer
+            example: "25645"
     Discovery:
       description: Container object for a discovery response
       required:
       - name
       - description
-      - version
       type: object
       properties:
         name:
@@ -125,10 +708,6 @@ components:
             \ of the application if appropriate."
           type: string
           example: https://www.example.com
-        version:
-          description: The version of this API supported by the server.
-          type: string
-          example: 1.0.0
         events:
           $ref: '#/components/schemas/DiscoveryEvents'
           description: Configuration of the events this server accepts.
@@ -202,40 +781,40 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ActivitiesStation'
-        czground:
+        czGround:
           $ref: '#/components/schemas/ActivitiesCZs'
           description: The ground CZs logged for this faction.
-        czspace:
+        czSpace:
           $ref: '#/components/schemas/ActivitiesCZs'
           description: The space CZs logged for this faction
-        infprimary:
+        infPrimary:
           description: The primary INF logged for this faction
           type: integer
-        infsecondary:
+        infSecondary:
           description: The secondary INF logged for this faction
           type: integer
-        missionfails:
+        missionFails:
           description: The number of failed missions logged for this faction
           type: integer
-        murdersground:
+        murdersGround:
           description: The number of on-foot murders logged for this faction.
           type: integer
-        murdersspace:
-          description: The number of ship murders logged for this faction.
-          type: integer
-        tradebm:
+        tradeBM:
           description: The Black Market profit logged for this faction
           type: integer
-        tradebuy:
+        tradeBuy:
           $ref: '#/components/schemas/ActivitiesTrade'
           description: The trade purchases logged for this faction.
           maxItems: 4
           minItems: 4
-        tradesell:
+        tradeSell:
           $ref: '#/components/schemas/ActivitiesTrade'
           description: The trade sales logged for this faction.
           maxItems: 4
           minItems: 4
+        murdersSpace:
+          description: The number of ship murders logged for this faction.
+          type: integer
     ActivitiesFactionInformation:
       title: Root Type for FactionInformation
       description: |
@@ -320,17 +899,17 @@ components:
         name:
           description: The station name
           type: string
-        twcargo:
+        twCargo:
           $ref: '#/components/schemas/ActivitiesSumCount'
           description: Thargoid War cargo missions logged
-        twescapepods:
+        twEscapepods:
           $ref: '#/components/schemas/ActivitiesLMH'
           description: Thargoid War escape pod (evac injured and critical injured)
             missions logged
-        twmassacre:
+        twMassacre:
           $ref: '#/components/schemas/ActivitiesThargoidVessels'
           description: Thargoid massacre missions logged
-        twpassengers:
+        twPassengers:
           $ref: '#/components/schemas/ActivitiesLMH'
           description: Thargoid War passenger missions logged
     ActivitiesSumCount:
@@ -451,11 +1030,15 @@ components:
       additionalProperties: false
     ActivitiesActivity:
       required:
-      - tickid
+      - tickID
       - systems
       - cmdr
-      - timestamp
       properties:
+        tickID:
+          $ref: '#/components/schemas/TickID'
+          description: |-
+            The ID of the tick this activity should be associated with. This ID
+             is originally generated by elitebgs.app and is unique for each tick.
         systems:
           description: Array of systems with activity
           type: array
@@ -464,25 +1047,11 @@ components:
         cmdr:
           description: The Commander name
           type: string
-        timestamp:
-          $ref: '#/components/schemas/Timestamp'
-          description: ""
-        tickid:
-          $ref: '#/components/schemas/TickID'
-          description: |-
-            The ID of the tick this activity should be associated with. This ID
-             is originally generated by elitebgs.app and is unique for each tick.
-          example: ""
     DiscoveryEvents:
-      description: "A description of the events that the server is requesting, and\
-        \ optional filter(s) for each event.\n\nNote only 3 example events are shown\
-        \ here, while in practise any valid E:D event name can be specified.\n\nEnsure\
-        \ that only the specific events you need are included. Requesting some events\
-        \ can cause a lot of traffic to your server, for example FSSSignalDiscovered\
-        \ when entering a large system.\n\nData senders should re-query your discovery\
-        \ endpoint \"regularly\" - at a minimum on initial launch of the sender if\
-        \ it is a desktop application. This allows you to change the set of requested\
-        \ events at any time, and start receiving those events. "
+      description: |-
+        A description of the events that the server is requesting, and optional filter(s) for each event.
+
+        Note only 3 example events are shown here, while in practise any valid E:D event name can be specified.
       type: object
       properties:
         ApproachSettlement:
@@ -526,75 +1095,6 @@ components:
           description: RegEx expression
           type: string
           example: ^\\$faction_Thargoid;$
-    EventsEvent:
-      description: |-
-        Journal event. Most data is passed directly from the logged event, including Frontier's ideosynchracies and inconsistencies. This is by design for flexibility.
-
-        Some events are enhanced with additional information, for ease of implementation on the server side.
-      required:
-      - event
-      - timestamp
-      - tickid
-      - StarSystem
-      - SystemAddress
-      - cmdr
-      type: object
-      properties:
-        event:
-          description: |-
-            A journal event item. The default set of events are shown here for brevity, but a server can subscribe to any event that can be logged to the journal.
-
-            Note that requesting some events can cause a lot of traffic to your server, for example FSSSignalDiscovered when entering a large system. Ensure you only request the specific events you need when responding to the discovery endpoint.
-          enum:
-          - ApproachSettlement
-          - CarrierJump
-          - CommitCrime
-          - Died
-          - Docked
-          - FactionKillBond
-          - FSDJump
-          - Location
-          - MarketBuy
-          - MarketSell
-          - MissionAbandoned
-          - MissionAccepted
-          - MissionCompleted
-          - MissionFailed
-          - MultiSellExplorationData
-          - RedeemVoucher
-          - SellExplorationData
-          - StartUp
-          type: string
-          example: Location
-        timestamp:
-          $ref: '#/components/schemas/Timestamp'
-          description: timestamp of an event in YYYY-mm-ddTHH:MM:SS.SSSZ format
-        StarSystem:
-          description: |-
-            Enhance every event that doesn't already have it with the current StarSystem.
-
-            Note CamelCase to match Frontier's StarSystem field name.
-          type: string
-          example: Mahia
-        SystemAddress:
-          format: int64
-          description: |-
-            Enhance every event that doesn't already have it with the current SystemAddress.
-
-            Note CamelCase to match Frontier's SystemAddress field name.
-          type: integer
-          example: "358864491242"
-        tickid:
-          $ref: '#/components/schemas/TickID'
-          description: |-
-            The ID of the tick this activity should be associated with. This ID
-             is originally generated by elitebgs.app and is unique for each tick.
-          maxLength: 24
-          minLength: 24
-          example: 639f422026842f7295280669
-        cmdr:
-          description: The Commander name
-          type: string
   securitySchemes:
     KeyAccessSecurityScheme:
       type: apiKey
