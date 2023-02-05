@@ -722,7 +722,8 @@ components:
       type: object
       properties:
         path:
-          description: The path (appended to the API root URL) to this endpoint.
+          description: "The path to this endpoint, relative to the API root URL. Omit\
+            \ leading and trailing slashes."
           type: string
           example: path/to/endpoint
         minPeriod:
