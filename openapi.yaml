@@ -1,8 +1,8 @@
 ---
 openapi: 3.0.2
 info:
-  title: BGS-Tally v1.3.0
-  version: 1.3.0
+  title: BGS-Tally v1.4.0
+  version: 1.4.0
   description: An API to send and receive Elite Dangerous BGS and Thargoid War activity
     data reported by CMDRs. This API was designed for use by the BGS-Tally EDMC plugin.
   contact:
@@ -711,6 +711,7 @@ components:
       - occupiedpods
       - blackboxes
       - tissuesamples
+      - thargoidpods
       type: object
       properties:
         blackboxes:
@@ -724,6 +725,9 @@ components:
           type: integer
         tissuesamples:
           description: Tissue samples recovered
+          type: integer
+        thargoidpods:
+          description: Thargoid bio-storage capsules recovered
           type: integer
       additionalProperties: false
   securitySchemes:
