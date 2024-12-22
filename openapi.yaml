@@ -1,8 +1,8 @@
 ---
 openapi: 3.0.2
 info:
-  title: BGS-Tally v1.2.0
-  version: 1.2.0
+  title: BGS-Tally v1.3.0
+  version: 1.3.0
   description: An API to send and receive Elite Dangerous BGS and Thargoid War activity
     data reported by CMDRs. This API was designed for use by the BGS-Tally EDMC plugin.
   contact:
@@ -436,6 +436,12 @@ components:
           type: integer
         revenant:
           description: Revenant kills logged
+          type: integer
+        banshee:
+          description: Banshee kills logged
+          type: integer
+        scythe-glaive:
+          description: Scythe or Glaive kills logged
           type: integer
       additionalProperties: false
     ActivitiesActivity:
