@@ -2,7 +2,7 @@
 openapi: 3.0.2
 info:
   title: BGS-Tally latest
-  version: 1.6.0-dev
+  version: 1.6.0
   description: An API to send and receive Elite Dangerous BGS and Thargoid War activity
     data reported by CMDRs. This API was designed for use by the BGS-Tally EDMC plugin.
   contact:
@@ -11,6 +11,9 @@ info:
   license:
     name: MIT License
     url: https://opensource.org/licenses/MIT
+servers:
+- url: http://127.0.0.1:8081
+  description: ""
 paths:
   /discovery:
     summary: Discover information about this server and its API capabilities
@@ -22,6 +25,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Discovery'
           description: Success
+      operationId: getDiscovery
       summary: Fetch information about the server's capabilities
       description: 'A discovery response containing information about the application
         and endpoints '
@@ -106,6 +110,7 @@ paths:
           description: API call frequency limit exceeded.
       security:
       - KeyAccessSecurityScheme: []
+      operationId: postEvent
       summary: Post one or more Journal or Synthetic Events
       description: |-
         This endpoint is used to post events that the server has requested via the discovery endpoint. Events can either be sourced directly from the game journal or synthesised by the client. Further, discovery allows the server to request that only events with field values matching specific RegEx.
@@ -1104,22 +1109,6 @@ components:
           - murder
           - mission_fail
           type: string
-        value:
-          description: |-
-            The target value. Always an integer, but the meaning will depend on the Target's type:
-
-            - visit: Not used
-            - inf: The +/- INF change to make
-            - bv: The CR value of BVs to hand in
-            - cb: The CR value of CBs to hand in
-            - expl: The CR value of exploration data to hand in
-            - trade_prof: The CR value of trade profit to make
-            - bm_prof: The CR value of black market profit to make
-            - ground_cz: The number of CZ wins to achieve
-            - space_cz: The number of CZ wins to achieve
-            - murder: The number of murders to complete
-            - mission_fail: The number of missions to fail
-          type: integer
         station:
           description: The target station name. Only applicable for 'visit' Targets
             when a specific station needs visiting.
@@ -1144,6 +1133,38 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ObjectivesMissionTargetSettlement'
+        targetindividual:
+          description: |-
+            The target value for individual CMDRs. Always an integer, but the meaning will depend on the Target's type:
+
+            - visit: Not used
+            - inf: The +/- INF change to make
+            - bv: The CR value of BVs to hand in
+            - cb: The CR value of CBs to hand in
+            - expl: The CR value of exploration data to hand in
+            - trade_prof: The CR value of trade profit to make
+            - bm_prof: The CR value of black market profit to make
+            - ground_cz: The number of CZ wins to achieve
+            - space_cz: The number of CZ wins to achieve
+            - murder: The number of murders to complete
+            - mission_fail: The number of missions to fail
+          type: integer
+        targetoverall:
+          description: |-
+            The target value across all CMDRs. Always an integer, but the meaning will depend on the Target's type:
+
+            - visit: Not used
+            - inf: The +/- INF change to make
+            - bv: The CR value of BVs to hand in
+            - cb: The CR value of CBs to hand in
+            - expl: The CR value of exploration data to hand in
+            - trade_prof: The CR value of trade profit to make
+            - bm_prof: The CR value of black market profit to make
+            - ground_cz: The number of CZ wins to achieve
+            - space_cz: The number of CZ wins to achieve
+            - murder: The number of murders to complete
+            - mission_fail: The number of missions to fail
+          type: integer
     ObjectivesMissionTargetSettlement:
       description: Details of an individual target settlement.
       required:
@@ -1154,8 +1175,12 @@ components:
         name:
           description: The name of the settlement.
           type: string
-        value:
-          description: The number of wins to achieve at this settlement.
+        targetindividual:
+          description: The number of wins to achieve at this settlement per CMDR.
+          type: integer
+        targetoverall:
+          description: The number of wins to achieve at this settlement across all
+            CMDRs.
           type: integer
         progress:
           description: "The overall aggregated number of wins at this settlement,\
