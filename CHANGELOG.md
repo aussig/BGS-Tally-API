@@ -1,5 +1,10 @@
 # Change Log
 
+## V1.7.0 - 2025-10-23
+
+Release 1.7.0 for BGS-Tally 5.2.0.
+
+
 ## V1.6.0 - 2025-05-11
 
 Release 1.6.0 for BGS-Tally 5.0.0, including Objectives and SyntheticEvents.
