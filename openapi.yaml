@@ -1,12 +1,12 @@
 ---
 openapi: 3.0.2
 info:
-  title: BGS-Tally latest
-  version: 1.7.0
+  title: BGS-Tally 1.8.0
+  version: 1.8.0
   description: An API to send and receive Elite Dangerous BGS and Thargoid War activity
     data reported by CMDRs. This API was designed for use by the BGS-Tally EDMC plugin.
   contact:
-    name: Aussi
+    name: BGS-Tally
     url: https://github.com/aussig/BGS-Tally
   license:
     name: MIT License
@@ -1071,8 +1071,8 @@ components:
           type: string
           example: win_war
         system:
-          description: The name of the system to target
-          type: string
+          description: The target system.
+          $ref: '#/components/schemas/ObjectivesMissionSystem'
         faction:
           description: "The name of the primary faction for this mission. If no faction\
             \ is specified for a MissionTarget, then this faction is used."
@@ -1126,7 +1126,7 @@ components:
         system:
           description: "The target system name. If not present, inherited from the\
             \ Mission."
-          type: string
+          $ref: '#/components/schemas/ObjectivesMissionSystem'
         faction:
           description: "The target faction name. If not present, inherited from the\
             \ Mission."
@@ -1190,6 +1190,28 @@ components:
           description: "The overall aggregated number of wins at this settlement,\
             \ across all CMDRs. If not present, no overall progress will be reported\
             \ in the client."
+    ObjectivesMissionSystem:
+      title: ObjectivesMissionSystem
+      description: Information about a mission star system
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          description: The system name
+          type: string
+          example: Sol
+        x:
+          format: int64
+          description: The x coordinate of the system
+          type: integer
+        'y':
+          format: int64
+          description: The y coordinate of the system
+          type: integer
+        z:
+          format: int64
+          description: The z coordinate of the system
           type: integer
   securitySchemes:
     KeyAccessSecurityScheme:
